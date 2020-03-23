@@ -10,6 +10,7 @@ from django.utils.encoding import force_text
 from django_otp.models import Device
 from django_otp.oath import TOTP
 from django_otp.util import random_hex, hex_validator
+import django.conf
 
 from .conf import settings
 
@@ -99,7 +100,14 @@ class AmazonSNSDevice(Device):
         return challenge
 
     def _deliver_token(self, token):
-        client = Session().client('sns')
+        client = Session(
+            aws_access_key_id=getattr(django.conf.settings, 'SNS_AWS_ACCESS_KEY_ID', None),
+            aws_secret_access_key=getattr(django.conf.settings, 'SNS_AWS_SECRET_ACCESS_KEY', None),
+            aws_session_token=getattr(django.conf.settings, 'SNS_AWS_SESSION_TOKEN', None),
+            region_name=getattr(django.conf.settings, 'SNS_REGION_NAME', None),
+            botocore_session=getattr(django.conf.settings, 'SNS_BOTOCORE_SESSION', None),
+            profile_name=getattr(django.conf.settings, 'SNS_PROFILE_NAME', None)
+        ).client('sns')
         try:
             client.publish(
                 PhoneNumber=self.number,
